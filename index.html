@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FX">
+<title>FX Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #080810;
+    --bg2: #0e0e1a;
+    --bg3: #14141f;
+    --border: #1e1e2e;
+    --accent: #4f8fff;
+    --accent-dim: #4f8fff22;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --text: #f0f0f8;
+    --text2: #8888aa;
+    --text3: #44445a;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Syne', sans-serif;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100%;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    padding: 20px 24px 0;
+    flex-shrink: 0;
+  }
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2px;
+  }
+
+  .pair-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  .add-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .add-btn:active { transform: scale(0.92); opacity: 0.8; }
+  .add-btn svg { width: 16px; height: 16px; }
+
+  .rate-display {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .rate-main {
+    font-family: var(--mono);
+    font-size: 52px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+
+  .rate-delta {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+  }
+  .rate-delta.up { background: #2ecc7120; color: var(--green); }
+  .rate-delta.down { background: #e74c3c20; color: var(--red); }
+  .rate-delta.flat { background: var(--bg3); color: var(--text2); }
+
+  .rate-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 4px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── FILTER TABS ── */
+  .filter-row {
+    display: flex;
+    gap: 4px;
+    padding: 16px 24px 0;
+    flex-shrink: 0;
+  }
+
+  .filter-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    padding: 5px 12px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filter-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .filter-btn:active { opacity: 0.7; }
+
+  /* ── CHART ── */
+  .chart-wrap {
+    flex: 1;
+    min-height: 0;
+    padding: 12px 0 0;
+    position: relative;
+  }
+
+  #chart {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .chart-tooltip {
+    position: absolute;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.1s;
+    white-space: nowrap;
+  }
+
+  /* ── BOTTOM PANEL ── */
+  .bottom-panel {
+    flex-shrink: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+
+  .bottom-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px 8px;
+  }
+
+  .bottom-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text3);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .bottom-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .text-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    padding: 0;
+  }
+  .text-btn:active { opacity: 0.6; }
+
+  .tx-table {
+    padding: 0 24px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tx-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 80px 64px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--bg2);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .tx-date {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    letter-spacing: 0.05em;
+  }
+
+  .tx-type {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+  }
+
+  .tx-amounts {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text2);
+    text-align: right;
+  }
+
+  .tx-rate {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    text-align: right;
+  }
+
+  .tx-fee {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--red);
+    margin-top: 1px;
+    text-align: right;
+  }
+
+  /* ── MODALS ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: #00000088;
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: flex-end;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+    width: 100%;
+    padding: 0 0 calc(24px + var(--safe-bottom));
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .modal-overlay.open .modal {
+    transform: translateY(0);
+  }
+
+  .modal-handle {
+    width: 36px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 12px auto 20px;
+  }
+
+  .modal-title {
+    font-family: var(--sans);
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    padding: 0 24px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-body {
+    padding: 20px 24px 0;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .form-input {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 16px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  .form-input:focus { border-color: var(--accent); }
+
+  .type-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .type-opt {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text2);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s;
+  }
+  .type-opt.active {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .preview-rate {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text2);
+    margin-bottom: 20px;
+  }
+
+  .preview-rate span {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+    margin-top: 2px;
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.15s;
+    letter-spacing: 0.02em;
+  }
+  .submit-btn:active { opacity: 0.85; transform: scale(0.99); }
+
+  /* ── ALL TRANSACTIONS MODAL ── */
+  .all-tx-list {
+    max-height: 55vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 4px;
+  }
+
+  .all-tx-row {
+    display: grid;
+    grid-template-columns: 72px 1fr 80px 64px 28px;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    background: var(--bg3);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+
+  .delete-tx-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    font-size: 14px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s;
+  }
+  .delete-tx-btn:active { color: var(--red); }
+
+  /* ── MONTH STATS BAR ── */
+  .month-stats {
+    display: flex;
+    gap: 0;
+    padding: 8px 24px 0;
+    flex-shrink: 0;
+  }
+
+  .month-stat {
+    flex: 1;
+    text-align: center;
+  }
+
+  .month-stat-val {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .month-stat-lbl {
+    font-family: var(--mono);
+    font-size: 9px;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    margin-top: 1px;
+  }
+
+  .stat-divider {
+    width: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="pair-label">USD / EUR</div>
+        <div class="rate-display">
+          <div class="rate-main" id="rateMain">—</div>
+          <div class="rate-delta flat" id="rateDelta">—</div>
+        </div>
+        <div class="rate-meta" id="rateMeta">No data yet</div>
+      </div>
+      <button class="add-btn" onclick="openAddModal()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+          <line x1="8" y1="2" x2="8" y2="14"/><line x1="2" y1="8" x2="14" y2="8"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- MONTH STATS -->
+  <div class="month-stats">
+    <div class="month-stat">
+      <div class="month-stat-val" id="statAvg">—</div>
+      <div class="month-stat-lbl">AVG</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="month-stat">
+      <div class="month-stat-val" style="color:var(--green)" id="statBest">—</div>
+      <div class="month-stat-lbl">BEST</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="month-stat">
+      <div class="month-stat-val" style="color:var(--red)" id="statWorst">—</div>
+      <div class="month-stat-lbl">WORST</div>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="month-stat">
+      <div class="month-stat-val" id="statDays">—</div>
+      <div class="month-stat-lbl">DAYS</div>
+    </div>
+  </div>
+
+  <!-- FILTER TABS -->
+  <div class="filter-row">
+    <button class="filter-btn" onclick="setFilter('1W')">1W</button>
+    <button class="filter-btn active" onclick="setFilter('1M')">1M</button>
+    <button class="filter-btn" onclick="setFilter('3M')">3M</button>
+    <button class="filter-btn" onclick="setFilter('1Y')">1Y</button>
+    <button class="filter-btn" onclick="setFilter('ALL')">ALL</button>
+  </div>
+
+  <!-- CHART -->
+  <div class="chart-wrap">
+    <canvas id="chart"></canvas>
+    <div class="chart-tooltip" id="tooltip"></div>
+  </div>
+
+  <!-- BOTTOM PANEL -->
+  <div class="bottom-panel">
+    <div class="bottom-header">
+      <div class="bottom-title">Recent Transactions</div>
+      <div class="bottom-actions">
+        <button class="text-btn" onclick="exportCSV()">Export CSV</button>
+        <button class="text-btn" onclick="openAllTx()">See All</button>
+      </div>
+    </div>
+    <div class="tx-table" id="txTable"></div>
+  </div>
+</div>
+
+<!-- ADD TRANSACTION MODAL -->
+<div class="modal-overlay" id="addModal" onclick="closeOnOverlay(event,'addModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Transaction</div>
+    <div class="modal-body">
+      <div class="type-toggle">
+        <div class="type-opt active" id="typePurchase" onclick="setType('purchase')">Purchase</div>
+        <div class="type-opt" id="typeTransfer" onclick="setType('transfer')">Transfer</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="inputDate">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">USD Amount</label>
+          <input class="form-input" type="number" inputmode="decimal" placeholder="62.85" id="inputUSD" oninput="updatePreview()">
+        </div>
+        <div class="form-group">
+          <label class="form-label" id="eurLabel">EUR Amount</label>
+          <input class="form-input" type="number" inputmode="decimal" placeholder="52.40" id="inputEUR" oninput="updatePreview()">
+        </div>
+      </div>
+
+      <div id="feeNote" style="display:none; font-family:var(--mono); font-size:11px; color:var(--text2); margin-bottom:16px;">
+        $10.00 transfer fee will be included in effective rate
+      </div>
+
+      <div class="preview-rate" id="previewRate">
+        Effective rate
+        <span id="previewVal">—</span>
+      </div>
+
+      <button class="submit-btn" onclick="saveTransaction()">Save Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- ALL TRANSACTIONS MODAL -->
+<div class="modal-overlay" id="allTxModal" onclick="closeOnOverlay(event,'allTxModal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">All Transactions</div>
+    <div class="modal-body">
+      <div class="all-tx-list" id="allTxList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────────
+const STORE_KEY = 'fx_tracker_data'
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY)
+    return raw ? JSON.parse(raw) : { transactions: [] }
+  } catch { return { transactions: [] } }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(data))
+}
+
+let appData = loadData()
+let currentFilter = '1M'
+let txType = 'purchase'
+
+// ── HELPERS ─────────────────────────────────────────────────────
+function fmtDate(iso) {
+  const [y, m, d] = iso.split('-')
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+  return `${d} ${months[parseInt(m)-1]}`
+}
+
+function todayISO() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+
+function getDailyRates(transactions) {
+  const days = {}
+  for (const tx of transactions) {
+    if (!days[tx.date]) days[tx.date] = { totalUSD: 0, totalEUR: 0 }
+    days[tx.date].totalUSD += tx.usd
+    days[tx.date].totalEUR += tx.eur
+  }
+  return Object.entries(days)
+    .map(([date, v]) => ({ date, rate: v.totalUSD / v.totalEUR }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+function filterDays(days) {
+  if (!days.length) return days
+  const now = new Date()
+  let cutoff
+  if (currentFilter === '1W') { cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7) }
+  else if (currentFilter === '1M') { cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 1) }
+  else if (currentFilter === '3M') { cutoff = new Date(now); cutoff.setMonth(cutoff.getMonth() - 3) }
+  else if (currentFilter === '1Y') { cutoff = new Date(now); cutoff.setFullYear(cutoff.getFullYear() - 1) }
+  else return days
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+  return days.filter(d => d.date >= cutoffStr)
+}
+
+// ── UI UPDATE ───────────────────────────────────────────────────
+function refresh() {
+  const allDays = getDailyRates(appData.transactions)
+  const filtered = filterDays(allDays)
+
+  // Rate header
+  if (allDays.length > 0) {
+    const latest = allDays[allDays.length - 1]
+    const prev = allDays[allDays.length - 2]
+    document.getElementById('rateMain').textContent = latest.rate.toFixed(3)
+    document.getElementById('rateMeta').textContent = `Updated ${fmtDate(latest.date)}`
+    if (prev) {
+      const delta = latest.rate - prev.rate
+      const el = document.getElementById('rateDelta')
+      el.textContent = (delta >= 0 ? '+' : '') + delta.toFixed(3)
+      el.className = 'rate-delta ' + (delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat')
+    }
+  } else {
+    document.getElementById('rateMain').textContent = '—'
+    document.getElementById('rateDelta').textContent = '—'
+    document.getElementById('rateMeta').textContent = 'No data yet'
+  }
+
+  // Stats bar (based on filtered data)
+  if (filtered.length > 0) {
+    const rates = filtered.map(d => d.rate)
+    const avg = rates.reduce((a, b) => a + b, 0) / rates.length
+    document.getElementById('statAvg').textContent = avg.toFixed(3)
+    document.getElementById('statBest').textContent = Math.max(...rates).toFixed(3)
+    document.getElementById('statWorst').textContent = Math.min(...rates).toFixed(3)
+    document.getElementById('statDays').textContent = filtered.length
+  } else {
+    ['statAvg','statBest','statWorst','statDays'].forEach(id => document.getElementById(id).textContent = '—')
+  }
+
+  drawChart(filtered)
+  renderTxTable()
+}
+
+// ── CHART ───────────────────────────────────────────────────────
+function drawChart(days) {
+  const canvas = document.getElementById('chart')
+  const wrap = canvas.parentElement
+  const dpr = window.devicePixelRatio || 1
+  const W = wrap.clientWidth
+  const H = wrap.clientHeight
+  canvas.width = W * dpr
+  canvas.height = H * dpr
+  canvas.style.width = W + 'px'
+  canvas.style.height = H + 'px'
+
+  const ctx = canvas.getContext('2d')
+  ctx.scale(dpr, dpr)
+  ctx.clearRect(0, 0, W, H)
+
+  if (days.length < 2) {
+    ctx.fillStyle = '#44445a'
+    ctx.font = '500 13px JetBrains Mono, monospace'
+    ctx.textAlign = 'center'
+    ctx.fillText('Log more data to see the chart', W / 2, H / 2)
+    return
+  }
+
+  const padL = 52, padR = 16, padT = 16, padB = 28
+  const cW = W - padL - padR
+  const cH = H - padT - padB
+
+  const rates = days.map(d => d.rate)
+  const min = Math.min(...rates)
+  const max = Math.max(...rates)
+  const range = max - min || 0.001
+  const padRange = range * 0.15
+  const minP = min - padRange
+  const maxP = max + padRange
+  const rangeP = maxP - minP
+
+  const xOf = i => padL + (i / (days.length - 1)) * cW
+  const yOf = r => padT + cH - ((r - minP) / rangeP) * cH
+
+  // Grid lines
+  const gridCount = 4
+  ctx.strokeStyle = '#1e1e2e'
+  ctx.lineWidth = 1
+  for (let i = 0; i <= gridCount; i++) {
+    const val = minP + (rangeP / gridCount) * i
+    const y = yOf(val)
+    ctx.beginPath()
+    ctx.moveTo(padL, y)
+    ctx.lineTo(W - padR, y)
+    ctx.stroke()
+    ctx.fillStyle = '#44445a'
+    ctx.font = '400 9px JetBrains Mono, monospace'
+    ctx.textAlign = 'right'
+    ctx.fillText(val.toFixed(3), padL - 6, y + 3)
+  }
+
+  // X axis labels
+  const showEvery = Math.ceil(days.length / 5)
+  ctx.fillStyle = '#44445a'
+  ctx.font = '400 9px JetBrains Mono, monospace'
+  ctx.textAlign = 'center'
+  days.forEach((d, i) => {
+    if (i % showEvery === 0 || i === days.length - 1) {
+      ctx.fillText(fmtDate(d.date), xOf(i), H - padB + 14)
+    }
+  })
+
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, padT, 0, padT + cH)
+  grad.addColorStop(0, '#4f8fff22')
+  grad.addColorStop(1, '#4f8fff00')
+  ctx.beginPath()
+  days.forEach((d, i) => {
+    const x = xOf(i), y = yOf(d.rate)
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  })
+  ctx.lineTo(xOf(days.length - 1), padT + cH)
+  ctx.lineTo(xOf(0), padT + cH)
+  ctx.closePath()
+  ctx.fillStyle = grad
+  ctx.fill()
+
+  // Line
+  ctx.beginPath()
+  ctx.strokeStyle = '#4f8fff'
+  ctx.lineWidth = 2
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+  days.forEach((d, i) => {
+    const x = xOf(i), y = yOf(d.rate)
+    if (i === 0) ctx.moveTo(x, y)
+    else ctx.lineTo(x, y)
+  })
+  ctx.stroke()
+
+  // Dots
+  days.forEach((d, i) => {
+    const x = xOf(i), y = yOf(d.rate)
+    const isLast = i === days.length - 1
+    ctx.beginPath()
+    ctx.arc(x, y, isLast ? 4 : 2.5, 0, Math.PI * 2)
+    ctx.fillStyle = isLast ? '#fff' : '#4f8fff'
+    ctx.fill()
+    if (isLast) {
+      ctx.beginPath()
+      ctx.arc(x, y, 7, 0, Math.PI * 2)
+      ctx.strokeStyle = '#4f8fff44'
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+    }
+  })
+
+  // Store for tooltip
+  canvas._chartDays = days
+  canvas._chartPad = { padL, padR, padT, padB, cW, cH }
+  canvas._chartRange = { minP, rangeP }
+}
+
+// Tooltip interaction
+const canvas = document.getElementById('chart')
+const tooltip = document.getElementById('tooltip')
+
+function handleChartTouch(e) {
+  if (!canvas._chartDays || canvas._chartDays.length < 2) return
+  const rect = canvas.getBoundingClientRect()
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX
+  const x = clientX - rect.left
+  const { padL, padR, cW } = canvas._chartPad
+  const days = canvas._chartDays
+  const idx = Math.round(((x - padL) / cW) * (days.length - 1))
+  const clamped = Math.max(0, Math.min(days.length - 1, idx))
+  const d = days[clamped]
+  tooltip.textContent = `${fmtDate(d.date)}  ${d.rate.toFixed(3)}`
+  tooltip.style.opacity = '1'
+  const tipX = Math.min(x, canvas.clientWidth - 130)
+  tooltip.style.left = tipX + 'px'
+  tooltip.style.top = '8px'
+  e.preventDefault()
+}
+
+canvas.addEventListener('touchstart', handleChartTouch, { passive: false })
+canvas.addEventListener('touchmove', handleChartTouch, { passive: false })
+canvas.addEventListener('touchend', () => { setTimeout(() => { tooltip.style.opacity = '0' }, 1200) })
+canvas.addEventListener('mousemove', handleChartTouch)
+canvas.addEventListener('mouseleave', () => { tooltip.style.opacity = '0' })
+
+// ── TX TABLE ────────────────────────────────────────────────────
+function renderTxTable() {
+  const table = document.getElementById('txTable')
+  const sorted = [...appData.transactions].sort((a, b) => b.date.localeCompare(a.date))
+  const recent = sorted.slice(0, 4)
+
+  if (recent.length === 0) {
+    table.innerHTML = `<div style="font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;padding:12px 0;">No transactions yet. Tap + to add one.</div>`
+    return
+  }
+
+  table.innerHTML = recent.map(tx => `
+    <div class="tx-row">
+      <div class="tx-date">${fmtDate(tx.date)}</div>
+      <div class="tx-type">${tx.type === 'transfer' ? 'Transfer' : 'Purchase'}</div>
+      <div class="tx-amounts">$${tx.usd.toFixed(2)} / €${tx.eur.toFixed(2)}</div>
+      <div>
+        <div class="tx-rate">${tx.rate.toFixed(3)}</div>
+        ${tx.fee ? `<div class="tx-fee">$${tx.fee} fee</div>` : ''}
+      </div>
+    </div>
+  `).join('')
+}
+
+// ── ALL TX MODAL ─────────────────────────────────────────────────
+function openAllTx() {
+  const list = document.getElementById('allTxList')
+  const sorted = [...appData.transactions].sort((a, b) => b.date.localeCompare(a.date))
+
+  if (sorted.length === 0) {
+    list.innerHTML = `<div style="font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;padding:16px 0;">No transactions yet.</div>`
+  } else {
+    list.innerHTML = sorted.map((tx, i) => {
+      const origIdx = appData.transactions.indexOf(tx)
+      return `
+        <div class="all-tx-row">
+          <div class="tx-date">${fmtDate(tx.date)}</div>
+          <div class="tx-type">${tx.type === 'transfer' ? 'Transfer' : 'Purchase'}</div>
+          <div class="tx-amounts">$${tx.usd.toFixed(2)} / €${tx.eur.toFixed(2)}</div>
+          <div>
+            <div class="tx-rate">${tx.rate.toFixed(3)}</div>
+            ${tx.fee ? `<div class="tx-fee">$${tx.fee} fee</div>` : ''}
+          </div>
+          <button class="delete-tx-btn" onclick="deleteTx(${origIdx})">×</button>
+        </div>
+      `
+    }).join('')
+  }
+
+  document.getElementById('allTxModal').classList.add('open')
+}
+
+function deleteTx(idx) {
+  if (!confirm('Delete this transaction?')) return
+  appData.transactions.splice(idx, 1)
+  saveData(appData)
+  refresh()
+  openAllTx()
+}
+
+// ── ADD MODAL ────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('inputDate').value = todayISO()
+  document.getElementById('inputUSD').value = ''
+  document.getElementById('inputEUR').value = ''
+  document.getElementById('previewVal').textContent = '—'
+  setType('purchase')
+  document.getElementById('addModal').classList.add('open')
+}
+
+function setType(type) {
+  txType = type
+  document.getElementById('typePurchase').classList.toggle('active', type === 'purchase')
+  document.getElementById('typeTransfer').classList.toggle('active', type === 'transfer')
+  document.getElementById('eurLabel').textContent = type === 'transfer' ? 'EUR Transferred' : 'EUR Amount'
+  document.getElementById('feeNote').style.display = type === 'transfer' ? 'block' : 'none'
+  document.getElementById('inputEUR').placeholder = type === 'transfer' ? '100.00 (bank rate ×)' : '52.40'
+  updatePreview()
+}
+
+function updatePreview() {
+  const usd = parseFloat(document.getElementById('inputUSD').value)
+  const eur = parseFloat(document.getElementById('inputEUR').value)
+  if (isNaN(usd) || isNaN(eur) || eur <= 0) {
+    document.getElementById('previewVal').textContent = '—'
+    return
+  }
+  let effectiveUSD = usd
+  if (txType === 'transfer') effectiveUSD = usd + 10
+  const rate = effectiveUSD / eur
+  document.getElementById('previewVal').textContent = rate.toFixed(3)
+}
+
+function saveTransaction() {
+  const date = document.getElementById('inputDate').value
+  const usd = parseFloat(document.getElementById('inputUSD').value)
+  const eur = parseFloat(document.getElementById('inputEUR').value)
+
+  if (!date || isNaN(usd) || isNaN(eur) || usd <= 0 || eur <= 0) {
+    alert('Please fill in all fields correctly.')
+    return
+  }
+
+  let effectiveUSD = usd
+  let fee = null
+  if (txType === 'transfer') {
+    effectiveUSD = usd + 10
+    fee = 10
+  }
+
+  const rate = effectiveUSD / eur
+  appData.transactions.push({ date, type: txType, usd: effectiveUSD, eur, rate, fee })
+  saveData(appData)
+  closeModal('addModal')
+  refresh()
+}
+
+// ── FILTER ───────────────────────────────────────────────────────
+function setFilter(f) {
+  currentFilter = f
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === f)
+  })
+  refresh()
+}
+
+// ── CSV EXPORT ───────────────────────────────────────────────────
+function exportCSV() {
+  if (appData.transactions.length === 0) { alert('No data to export.'); return }
+  const sorted = [...appData.transactions].sort((a, b) => a.date.localeCompare(b.date))
+  const rows = [['Date','Type','USD','EUR','Rate','Fee']]
+  sorted.forEach(tx => rows.push([tx.date, tx.type, tx.usd.toFixed(2), tx.eur.toFixed(2), tx.rate.toFixed(3), tx.fee || '']))
+  const csv = rows.map(r => r.join(',')).join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `fx-tracker-${todayISO()}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// ── MODALS ───────────────────────────────────────────────────────
+function closeModal(id) { document.getElementById(id).classList.remove('open') }
+function closeOnOverlay(e, id) { if (e.target.id === id) closeModal(id) }
+
+// ── RESIZE ───────────────────────────────────────────────────────
+window.addEventListener('resize', () => refresh())
+
+// ── INIT ─────────────────────────────────────────────────────────
+refresh()
+</script>
+</body>
+</html>
